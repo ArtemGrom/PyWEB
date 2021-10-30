@@ -20,5 +20,5 @@ from blog.views import home
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', home, name='home'),
-    path('notes/', include('blog.urls')),
+    path('api/v1/', include('blog.urls')),
 ]
