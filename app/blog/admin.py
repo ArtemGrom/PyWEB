@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.conf.locale.ru import formats as ru_formats
 from rest_framework.authtoken.admin import TokenAdmin
-from .models import Note
+from .models import Note, Comment
 
 ru_formats.DATETIME_FORMAT = "d.m.Y H:i:s"
 
@@ -27,3 +27,14 @@ class NoteAdmin(admin.ModelAdmin):
 
     # фильтры справа
     list_filter = ("public",)
+
+    def save_model(self, request, obj, form, change):
+        # Добавляем текущего пользователя (если не выбран) при сохранении модели
+        if not hasattr(obj, 'author') or not obj.author:
+            obj.author = request.user
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(Comment)
+class CommentAdmin(admin.ModelAdmin):
+    pass

@@ -1,12 +1,14 @@
+from django.db.models import Avg
+
 from django.shortcuts import render
 from rest_framework import status
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .serializers import NoteSerializer, NoteDetailSerializer, NoteEditorSerializer
+from .serializers import NoteSerializer, NoteDetailSerializer, NoteEditorSerializer, CommentAddSerializer, CommentSerializer
 
-from .models import Note
+from .models import Note, Comment
 
 
 def home(request):
@@ -70,3 +72,34 @@ class NoteEditorView(APIView):
             return Response(new_note.data, status=status.HTTP_200_OK)
         else:
             return Response(new_note.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CommentDetailView(APIView):
+    """ Комментарий к статье """
+    permission_classes = (IsAuthenticated, )
+
+    def get(self, request):
+        """ Получить список всех комментов """
+        comments = Comment.objects.all().order_by('-date_add', 'note')
+        comments_serializer = CommentSerializer(comments, many=True)
+        return Response(comments_serializer.data)
+
+    def post(self, request, note_id):
+        """ Новый комментарий """
+
+        note = Note.objects.filter(pk=note_id).first()
+        if not note:
+            raise NotFound(f'Статья с id={note_id} не найдена')
+
+        new_comment = CommentAddSerializer(data=request.data)
+        if new_comment.is_valid():
+            new_comment.save(note=note, author=request.user)
+            return Response(new_comment.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(new_comment.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, comment_id):
+        """ Удалить комментарий """
+        comment = Comment.objects.filter(pk=comment_id, author=request.user)
+        comment.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
